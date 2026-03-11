@@ -1,0 +1,16 @@
+com\hms\controllers\UserController.class
+com\hms\services\AppointmentService.class
+com\hms\controllers\AppointmentController.class
+com\hms\models\User.class
+com\hms\repositories\AppointmentRepository.class
+com\hms\BackendApplication.class
+com\hms\models\Appointment.class
+com\hms\controllers\AuthController.class
+com\hms\config\SecurityConfig.class
+com\hms\models\Appointment$Status.class
+com\hms\models\User$Role.class
+com\hms\models\User$Slot.class
+com\hms\controllers\AdminController.class
+com\hms\security\JwtUtils.class
+com\hms\repositories\UserRepository.class
+com\hms\security\JwtFilter.class
