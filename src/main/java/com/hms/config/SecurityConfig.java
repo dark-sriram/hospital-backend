@@ -44,7 +44,7 @@ public class SecurityConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
-        config.addAllowedOrigin("http://localhost:5173");
+        config.addAllowedOrigin("https://vercel.com/dark-srirams-projects/hospital-frontend-1/Hj3PAfq6vy8B1d6KLWGm43HjX7xj");
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
         source.registerCorsConfiguration("/**", config);
