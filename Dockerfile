@@ -15,4 +15,5 @@ COPY --from=build /app/target/*.jar app.jar
 # Render usually sets the PORT environment variable
 EXPOSE 5000
 
-ENTRYPOINT ["java", "-Dserver.port=${PORT:5000}", "-jar", "app.jar"]
+# Use shell form to allow variable expansion
+ENTRYPOINT java -Dserver.port=${PORT:-5000} -Xmx512m -jar app.jar

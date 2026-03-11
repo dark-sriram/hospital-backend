@@ -4,6 +4,7 @@ import com.hms.models.User;
 import com.hms.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
@@ -24,7 +25,12 @@ public class UserController {
 
     @PutMapping("/availability")
     public ResponseEntity<?> updateAvailability(@RequestBody Map<String, List<User.Slot>> body) {
-        // In a real app, get user from SecurityContext
-        return ResponseEntity.ok().build();
+        String email = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null) return ResponseEntity.badRequest().body(Map.of("msg", "User not found"));
+        
+        user.setAvailableSlots(body.get("slots"));
+        userRepository.save(user);
+        return ResponseEntity.ok(Map.of("msg", "Availability updated"));
     }
 }
