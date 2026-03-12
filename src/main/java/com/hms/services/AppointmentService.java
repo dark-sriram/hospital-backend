@@ -16,46 +16,35 @@ public class AppointmentService {
     private UserRepository userRepository;
 
     public Appointment bookAppointment(Appointment appointment) throws Exception {
-        System.out.println("--- Service: Starting bookAppointment ---");
-        System.out.println("Searching for doctor ID: " + appointment.getDoctorId());
+        System.out.println("--- Service: Booking for Doctor ID: " + appointment.getDoctorId());
         
         User doctor = userRepository.findById(appointment.getDoctorId())
-                .orElseThrow(() -> new Exception("Doctor ID [" + appointment.getDoctorId() + "] not found in database"));
-        
-        System.out.println("Doctor found: " + doctor.getName());
+                .orElseThrow(() -> new Exception("Doctor not found"));
         
         if (doctor.getAvailableSlots() == null || doctor.getAvailableSlots().isEmpty()) {
-            throw new Exception("Doctor " + doctor.getName() + " has no available slots scheduled");
+            throw new Exception("Doctor has no available slots scheduled");
         }
 
-        System.out.println("Requested slot: Date=" + appointment.getAppointmentDate() + ", Start=" + appointment.getStartTime() + ", End=" + appointment.getEndTime());
-
-        // Logic check: verify if the requested slot EXISTS in doctor's availability
+        // Lenient match: Date and StartTime are enough to identify the slot
         boolean isSlotValid = doctor.getAvailableSlots().stream()
-                .anyMatch(slot -> {
-                    boolean dMatch = slot.getDate().equals(appointment.getAppointmentDate());
-                    boolean sMatch = slot.getStartTime().equals(appointment.getStartTime());
-                    boolean eMatch = slot.getEndTime().equals(appointment.getEndTime());
-                    return dMatch && sMatch && eMatch;
-                });
+                .anyMatch(slot -> 
+                    slot.getDate() != null && slot.getDate().equals(appointment.getAppointmentDate()) &&
+                    slot.getStartTime() != null && slot.getStartTime().equals(appointment.getStartTime())
+                );
         
         if (!isSlotValid) {
             System.out.println("FAILED: Slot mismatch. Requested: " + appointment.getAppointmentDate() + " " + appointment.getStartTime());
-            System.out.println("Doctor available slots count: " + doctor.getAvailableSlots().size());
-            throw new Exception("The selected time slot does not match the doctor's published availability");
+            throw new Exception("The selected time slot does not match the doctor's schedule");
         }
 
         // Overlap Check
-        System.out.println("Checking for overlaps...");
         if (hasOverlap(appointment.getDoctorId(), appointment.getPatientId(),
                 appointment.getAppointmentDate(), appointment.getStartTime(), appointment.getEndTime())) {
-            System.out.println("FAILED: Overlap detected");
             throw new Exception("This time slot is already booked");
         }
 
-        System.out.println("Saving appointment to repository...");
         Appointment saved = appointmentRepository.save(appointment);
-        System.out.println("Saved! ID: " + saved.getId());
+        System.out.println("--- Service: SUCCESSFULLY SAVED Appointment! ID: " + saved.getId() + " ---");
         return saved;
     }
 
