@@ -26,11 +26,17 @@ public class AppointmentController {
     @PostMapping("/book")
     public ResponseEntity<?> book(@RequestBody Appointment appointment) {
         try {
-            String email = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-            User patient = userRepository.findByEmail(email).orElseThrow(() -> new Exception("Patient not found"));
+            Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            String email = principal.toString();
+            User patient = userRepository.findByEmail(email).orElseThrow(() -> new Exception("Session user info not found"));
             appointment.setPatientId(patient.getId());
-            return ResponseEntity.ok(appointmentService.bookAppointment(appointment));
+            
+            System.out.println("Incoming book request: DoctorID=" + appointment.getDoctorId() + ", PatientID=" + appointment.getPatientId());
+            
+            Appointment saved = appointmentService.bookAppointment(appointment);
+            return ResponseEntity.ok(saved);
         } catch (Exception e) {
+            System.err.println("Booking Error: " + e.getMessage());
             return ResponseEntity.badRequest().body(Map.of("msg", e.getMessage()));
         }
     }
@@ -99,7 +105,6 @@ public class AppointmentController {
         try {
             List<Appointment> all = appointmentRepository.findAll();
             
-            // Appointments per doctor
             Map<String, Long> counts = all.stream()
                 .filter(a -> a.getDoctorId() != null)
                 .collect(Collectors.groupingBy(Appointment::getDoctorId, Collectors.counting()));
@@ -112,7 +117,6 @@ public class AppointmentController {
                 return map;
             }).collect(Collectors.toList());
 
-            // Revenue per department
             Map<String, Long> revMap = all.stream()
                 .filter(a -> a.getStatus() == Appointment.Status.COMPLETED && a.getDoctorId() != null)
                 .collect(Collectors.groupingBy(a -> {
