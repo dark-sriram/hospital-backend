@@ -25,18 +25,31 @@ public class AppointmentController {
 
     @PostMapping("/book")
     public ResponseEntity<?> book(@RequestBody Appointment appointment) {
+        System.out.println(">>> Incoming Book Request Body: " + appointment);
         try {
             Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            System.out.println(">>> Principal: " + principal + " (Type: " + principal.getClass().getName() + ")");
             String email = principal.toString();
-            User patient = userRepository.findByEmail(email).orElseThrow(() -> new Exception("Session user info not found"));
+            
+            User patient = userRepository.findByEmail(email)
+                .orElseThrow(() -> new Exception("User with email " + email + " not found in DB"));
+            
+            System.out.println(">>> Found Patient: " + patient.getName() + " [ID=" + patient.getId() + "]");
+            
+            if (patient.getId() == null) {
+                System.err.println("CRITICAL: Patient ID is null for user " + email);
+            }
+
             appointment.setPatientId(patient.getId());
+            appointment.setStatus(Appointment.Status.BOOKED); // Default status
             
-            System.out.println("Incoming book request: DoctorID=" + appointment.getDoctorId() + ", PatientID=" + appointment.getPatientId());
-            
+            System.out.println(">>> Appointment object ready for service: " + appointment);
             Appointment saved = appointmentService.bookAppointment(appointment);
+            System.out.println(">>> SUCCESS: Appointment saved with ID " + saved.getId());
             return ResponseEntity.ok(saved);
         } catch (Exception e) {
-            System.err.println("Booking Error: " + e.getMessage());
+            System.err.println(">>> BOOKING FAILED: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.badRequest().body(Map.of("msg", e.getMessage()));
         }
     }
