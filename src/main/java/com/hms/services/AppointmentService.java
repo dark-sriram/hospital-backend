@@ -16,33 +16,36 @@ public class AppointmentService {
     private UserRepository userRepository;
 
     public Appointment bookAppointment(Appointment appointment) throws Exception {
-        if (appointment.getDoctorId() == null) throw new Exception("Doctor ID is required");
-        if (appointment.getPatientId() == null) throw new Exception("Patient ID is required");
-
-        // 1. Doctor Availability
+        System.out.println("--- Service: Booking for Doctor ID: " + appointment.getDoctorId());
+        
         User doctor = userRepository.findById(appointment.getDoctorId())
                 .orElseThrow(() -> new Exception("Doctor not found"));
         
-        if (doctor.getAvailableSlots() == null) {
+        if (doctor.getAvailableSlots() == null || doctor.getAvailableSlots().isEmpty()) {
             throw new Exception("Doctor has no available slots scheduled");
         }
 
-        boolean available = doctor.getAvailableSlots().stream()
-                .anyMatch(slot -> slot.getDate().equals(appointment.getAppointmentDate()) &&
-                        slot.getStartTime().compareTo(appointment.getStartTime()) <= 0 &&
-                        slot.getEndTime().compareTo(appointment.getEndTime()) >= 0);
+        // Lenient match: Date and StartTime are enough to identify the slot
+        boolean isSlotValid = doctor.getAvailableSlots().stream()
+                .anyMatch(slot -> 
+                    slot.getDate() != null && slot.getDate().equals(appointment.getAppointmentDate()) &&
+                    slot.getStartTime() != null && slot.getStartTime().equals(appointment.getStartTime())
+                );
         
-        if (!available)
-            throw new Exception("Doctor not available at this time/date or slot not found");
-
-        // 2. Overlaps
-        if (hasOverlap(appointment.getDoctorId(), appointment.getPatientId(),
-                appointment.getAppointmentDate(), appointment.getStartTime(), appointment.getEndTime())) {
-            throw new Exception("Time slot overlap detected with existing appointment");
+        if (!isSlotValid) {
+            System.out.println("FAILED: Slot mismatch. Requested: " + appointment.getAppointmentDate() + " " + appointment.getStartTime());
+            throw new Exception("The selected time slot does not match the doctor's schedule");
         }
 
-        appointment.setStatus(Appointment.Status.BOOKED);
-        return appointmentRepository.save(appointment);
+        // Overlap Check
+        if (hasOverlap(appointment.getDoctorId(), appointment.getPatientId(),
+                appointment.getAppointmentDate(), appointment.getStartTime(), appointment.getEndTime())) {
+            throw new Exception("This time slot is already booked");
+        }
+
+        Appointment saved = appointmentRepository.save(appointment);
+        System.out.println("--- Service: SUCCESSFULLY SAVED Appointment! ID: " + saved.getId() + " ---");
+        return saved;
     }
 
     private boolean hasOverlap(String docId, String patId, String date, String start, String end) {

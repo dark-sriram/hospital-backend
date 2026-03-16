@@ -19,24 +19,31 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/appointments")
 public class AppointmentController {
-    @Autowired private AppointmentService appointmentService;
-    @Autowired private AppointmentRepository appointmentRepository;
-    @Autowired private UserRepository userRepository;
+    @Autowired
+    private AppointmentService appointmentService;
+    @Autowired
+    private AppointmentRepository appointmentRepository;
+    @Autowired
+    private UserRepository userRepository;
 
     @PostMapping("/book")
     public ResponseEntity<?> book(@RequestBody Appointment appointment) {
+        System.out.println(">>> Incoming Book Request: DoctorID=" + appointment.getDoctorId() + ", Date=" + appointment.getAppointmentDate());
         try {
             Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
             String email = principal.toString();
-            User patient = userRepository.findByEmail(email).orElseThrow(() -> new Exception("Session user info not found"));
-            appointment.setPatientId(patient.getId());
             
-            System.out.println("Incoming book request: DoctorID=" + appointment.getDoctorId() + ", PatientID=" + appointment.getPatientId());
+            User patient = userRepository.findByEmail(email)
+                .orElseThrow(() -> new Exception("User with email " + email + " not found in DB"));
+            
+            appointment.setPatientId(patient.getId());
+            appointment.setStatus(Appointment.Status.BOOKED);
             
             Appointment saved = appointmentService.bookAppointment(appointment);
+            System.out.println(">>> SUCCESS: Appointment saved with ID " + saved.getId());
             return ResponseEntity.ok(saved);
         } catch (Exception e) {
-            System.err.println("Booking Error: " + e.getMessage());
+            System.err.println(">>> BOOKING FAILED: " + e.getMessage());
             return ResponseEntity.badRequest().body(Map.of("msg", e.getMessage()));
         }
     }
@@ -45,8 +52,9 @@ public class AppointmentController {
     public List<AppointmentResponse> getAppointments() {
         String email = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         User user = userRepository.findByEmail(email).orElse(null);
-        if (user == null) return List.of();
-        
+        if (user == null)
+            return List.of();
+
         List<Appointment> apps;
         if (user.getRole() == User.Role.DOCTOR) {
             apps = appointmentRepository.findByDoctorIdAndStatusNot(user.getId(), Appointment.Status.CANCELLED);
@@ -91,7 +99,8 @@ public class AppointmentController {
     @PutMapping("/{id}/status")
     public ResponseEntity<?> updateStatus(@PathVariable String id, @RequestBody Map<String, String> body) {
         Appointment app = appointmentRepository.findById(id).orElse(null);
-        if (app == null) return ResponseEntity.notFound().build();
+        if (app == null)
+            return ResponseEntity.notFound().build();
         try {
             app.setStatus(Appointment.Status.valueOf(body.get("status")));
             return ResponseEntity.ok(appointmentRepository.save(app));
@@ -104,11 +113,11 @@ public class AppointmentController {
     public ResponseEntity<?> getReports() {
         try {
             List<Appointment> all = appointmentRepository.findAll();
-            
+
             Map<String, Long> counts = all.stream()
-                .filter(a -> a.getDoctorId() != null)
-                .collect(Collectors.groupingBy(Appointment::getDoctorId, Collectors.counting()));
-            
+                    .filter(a -> a.getDoctorId() != null)
+                    .collect(Collectors.groupingBy(Appointment::getDoctorId, Collectors.counting()));
+
             List<Map<String, Object>> perDoctor = counts.entrySet().stream().map(e -> {
                 String name = userRepository.findById(e.getKey()).map(User::getName).orElse("Unknown");
                 Map<String, Object> map = new HashMap<>();
@@ -118,10 +127,10 @@ public class AppointmentController {
             }).collect(Collectors.toList());
 
             Map<String, Long> revMap = all.stream()
-                .filter(a -> a.getStatus() == Appointment.Status.COMPLETED && a.getDoctorId() != null)
-                .collect(Collectors.groupingBy(a -> {
-                    return userRepository.findById(a.getDoctorId()).map(User::getSpecialization).orElse("General");
-                }, Collectors.counting()));
+                    .filter(a -> a.getStatus() == Appointment.Status.COMPLETED && a.getDoctorId() != null)
+                    .collect(Collectors.groupingBy(a -> {
+                        return userRepository.findById(a.getDoctorId()).map(User::getSpecialization).orElse("General");
+                    }, Collectors.counting()));
 
             List<Map<String, Object>> revenue = revMap.entrySet().stream().map(e -> {
                 Map<String, Object> map = new HashMap<>();
