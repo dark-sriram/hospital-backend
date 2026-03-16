@@ -12,3 +12,4 @@ D:\hospital_management\backend\backend_new\sb-backend\src\main\java\com\hms\Back
 D:\hospital_management\backend\backend_new\sb-backend\src\main\java\com\hms\config\SecurityConfig.java
 D:\hospital_management\backend\backend_new\sb-backend\src\main\java\com\hms\controllers\AdminController.java
 D:\hospital_management\backend\backend_new\sb-backend\src\main\java\com\hms\services\AppointmentService.java
+D:\hospital_management\backend\backend_new\sb-backend\src\main\java\com\hms\controllers\DiagnosticController.java

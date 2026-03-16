@@ -9,6 +9,7 @@ com\hms\models\Appointment.class
 com\hms\controllers\AuthController.class
 com\hms\config\SecurityConfig.class
 com\hms\models\Appointment$Status.class
+com\hms\controllers\DiagnosticController.class
 com\hms\models\User$Role.class
 com\hms\dto\AppointmentResponse.class
 com\hms\models\User$Slot.class
